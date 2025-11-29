@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Database package
+import 'dart:convert'; // Data convert korar jonno
 
 void main() {
   runApp(const SagarTodoApp());
@@ -36,6 +38,24 @@ class TodoItem {
     required this.title,
     this.isCompleted = false,
   });
+
+  // Database e rakhar jonno format change (Map e newa)
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'isCompleted': isCompleted,
+    };
+  }
+
+  // Database theke porar jonno abar Object banano
+  factory TodoItem.fromMap(Map<String, dynamic> map) {
+    return TodoItem(
+      id: map['id'],
+      title: map['title'],
+      isCompleted: map['isCompleted'],
+    );
+  }
 }
 
 class TodoHomePage extends StatefulWidget {
@@ -46,10 +66,39 @@ class TodoHomePage extends StatefulWidget {
 }
 
 class _TodoHomePageState extends State<TodoHomePage> {
-  final List<TodoItem> _todos = [];
+  List<TodoItem> _todos = [];
   final TextEditingController _textController = TextEditingController();
 
-  // Task Add Kora
+  @override
+  void initState() {
+    super.initState();
+    _loadData(); // App chalu holei purano data load hobe
+  }
+
+  // --- DATABASE FUNCTIONS START ---
+
+  // Data Save kora
+  Future<void> _saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    // List ke text e convert kore save korchi
+    final String encodedData = jsonEncode(_todos.map((e) => e.toMap()).toList());
+    await prefs.setString('todo_list', encodedData);
+  }
+
+  // Data Load kora
+  Future<void> _loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? savedData = prefs.getString('todo_list');
+
+    if (savedData != null) {
+      final List<dynamic> decodedData = jsonDecode(savedData);
+      setState(() {
+        _todos = decodedData.map((e) => TodoItem.fromMap(e)).toList();
+      });
+    }
+  }
+  // --- DATABASE FUNCTIONS END ---
+
   void _addTodo() {
     if (_textController.text.trim().isEmpty) return;
 
@@ -60,24 +109,24 @@ class _TodoHomePageState extends State<TodoHomePage> {
       ));
       _textController.clear();
     });
+    _saveData(); // Notun kaj add holei save hobe
     Navigator.of(context).pop();
   }
 
-  // Task Toggle Kora
   void _toggleTodo(int index) {
     setState(() {
       _todos[index].isCompleted = !_todos[index].isCompleted;
     });
+    _saveData(); // Tick mark dileo save hobe
   }
 
-  // Task Delete Kora
   void _deleteTodo(int index) {
     setState(() {
       _todos.removeAt(index);
     });
+    _saveData(); // Delete korleo save hobe
   }
 
-  // Dialog Show Kora
   void _showAddDialog() {
     showModalBottomSheet(
       context: context,
@@ -136,7 +185,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Tasks', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('My Tasks (Saved)', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -146,9 +195,9 @@ class _TodoHomePageState extends State<TodoHomePage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.check_circle_outline, size: 80, color: Colors.grey.shade300),
+                  Icon(Icons.save_as_outlined, size: 80, color: Colors.grey.shade300),
                   const SizedBox(height: 20),
-                  Text('Kono kaj baki nai!', style: TextStyle(color: Colors.grey.shade500)),
+                  Text('Kaj add koro, ami save rakhbo!', style: TextStyle(color: Colors.grey.shade500)),
                 ],
               ),
             )
