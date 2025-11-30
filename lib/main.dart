@@ -1,13 +1,13 @@
-import 'dart:io'; 
-import 'package:flutter/foundation.dart'; 
+import 'dart:io'; // File handle korar jonno
+import 'package:flutter/foundation.dart'; // Platform check korar jonno
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; 
-import 'dart:convert'; 
-import 'package:file_picker/file_picker.dart'; 
-import 'package:path_provider/path_provider.dart'; 
-import 'package:open_file/open_file.dart'; 
-import 'package:path/path.dart' as path; 
-import 'package:webview_flutter/webview_flutter.dart'; 
+import 'package:shared_preferences/shared_preferences.dart'; // Database
+import 'dart:convert'; // Data convert
+import 'package:file_picker/file_picker.dart'; // File bachar jonno
+import 'package:path_provider/path_provider.dart'; // Folder khujar jonno
+import 'package:open_filex/open_filex.dart'; // File open korar jonno
+import 'package:path/path.dart' as path; // File name ber korar jonno
+import 'package:webview_flutter/webview_flutter.dart'; // ERP Website
 
 void main() {
   runApp(const DiaryApp());
@@ -26,12 +26,12 @@ class DiaryApp extends StatelessWidget {
         useMaterial3: true,
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF00E5FF), 
+          seedColor: const Color(0xFF00E5FF), // Neon Cyan
           brightness: Brightness.dark,
           primary: const Color(0xFF00E5FF),
-          secondary: const Color(0xFFE040FB), 
+          secondary: const Color(0xFFE040FB), // Neon Purple
         ),
-        scaffoldBackgroundColor: const Color(0xFF0F0F0F), 
+        scaffoldBackgroundColor: const Color(0xFF0F0F0F), // Deep Dark Background
         cardColor: const Color(0xFF1A1A1A),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
@@ -45,7 +45,7 @@ class DiaryApp extends StatelessWidget {
   }
 }
 
-// --- SCREEN MANAGER ---
+// --- SCREEN MANAGER (CUSTOM FLOATING MENU) ---
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -74,7 +74,7 @@ class _MainScreenState extends State<MainScreen> {
         margin: const EdgeInsets.all(20),
         height: 70,
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E).withOpacity(0.95), // Ektu dark korlam
+          color: const Color(0xFF1E1E1E).withOpacity(0.95),
           borderRadius: BorderRadius.circular(35),
           boxShadow: [
             BoxShadow(
@@ -137,7 +137,7 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ==========================================
-// 1. TODO PAGE (Fixed Button)
+// 1. TODO PAGE
 // ==========================================
 class TodoItem {
   String id;
@@ -313,9 +313,8 @@ class _TodoPageState extends State<TodoPage> {
                 );
               },
             ),
-      // --- FIX: Padding added to push button UP ---
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 90.0), // 90px padding from bottom
+        padding: const EdgeInsets.only(bottom: 90.0),
         child: FloatingActionButton(
           onPressed: _showAddDialog,
           backgroundColor: const Color(0xFF00E5FF),
@@ -328,7 +327,7 @@ class _TodoPageState extends State<TodoPage> {
 }
 
 // ==========================================
-// 2. MONEY MANAGER PAGE (Fixed Button)
+// 2. MONEY MANAGER PAGE (UPDATED WITH REMAINING)
 // ==========================================
 class BudgetCategory {
   String id;
@@ -402,6 +401,9 @@ class _MoneyManagerPageState extends State<MoneyManagerPage> {
   }
 
   double get _totalSpent => _budgets.fold(0, (sum, item) => sum + item.spentAmount);
+  
+  // ✅ NEW: Calculate Total Remaining
+  double get _totalRemaining => _monthlyLimit - _totalSpent;
   
   String get _currentMonth {
     final now = DateTime.now();
@@ -567,11 +569,15 @@ class _MoneyManagerPageState extends State<MoneyManagerPage> {
   Widget build(BuildContext context) {
     double globalProgress = _monthlyLimit == 0 ? 0 : (_totalSpent / _monthlyLimit);
     if (globalProgress > 1) globalProgress = 1;
+    
+    // Low balance alert (Red if < 20% remaining)
+    bool isLowBalance = globalProgress > 0.8;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Wallet')),
       body: Column(
         children: [
+          // --- UPDATED DASHBOARD CARD ---
           Container(
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(24),
@@ -586,6 +592,7 @@ class _MoneyManagerPageState extends State<MoneyManagerPage> {
             ),
             child: Column(
               children: [
+                // Top Row: Month & Days
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -597,16 +604,33 @@ class _MoneyManagerPageState extends State<MoneyManagerPage> {
                     )
                   ],
                 ),
+                
+                const SizedBox(height: 20),
+                
+                // Middle Row: TOTAL REMAINING (Big & Center)
+                const Text('Remaining Balance', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                const SizedBox(height: 5),
+                Text(
+                  '৳${_totalRemaining.toStringAsFixed(0)}', 
+                  style: TextStyle(
+                    fontSize: 40, 
+                    fontWeight: FontWeight.bold, 
+                    color: isLowBalance ? const Color(0xFFFF1744) : Colors.white, // Red if low
+                    shadows: [Shadow(color: Colors.black.withOpacity(0.3), blurRadius: 10)]
+                  )
+                ),
+
                 const SizedBox(height: 25),
+                
+                // Bottom Row: Spent & Limit
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Total Spent', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                        const SizedBox(height: 5),
-                        Text('৳${_totalSpent.toStringAsFixed(0)}', style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white)),
+                        const Text('Spent', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                        Text('৳${_totalSpent.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                       ],
                     ),
                     Column(
@@ -616,25 +640,24 @@ class _MoneyManagerPageState extends State<MoneyManagerPage> {
                           onTap: _setMonthlyLimit,
                           child: Row(
                             children: const [
-                              Text('Limit ', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                              Icon(Icons.edit, size: 14, color: Colors.white70),
+                              Text('Limit ', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                              Icon(Icons.edit, size: 12, color: Colors.white60),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 5),
-                        Text('৳${_monthlyLimit.toStringAsFixed(0)}', style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text('৳${_monthlyLimit.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                       ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 15),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: LinearProgressIndicator(
                     value: globalProgress,
-                    minHeight: 10,
+                    minHeight: 8,
                     backgroundColor: Colors.black.withOpacity(0.2),
-                    color: globalProgress > 0.9 ? const Color(0xFFFF1744) : const Color(0xFF00E5FF),
+                    color: isLowBalance ? const Color(0xFFFF1744) : const Color(0xFF00E5FF),
                   ),
                 ),
               ],
@@ -719,9 +742,8 @@ class _MoneyManagerPageState extends State<MoneyManagerPage> {
           ),
         ],
       ),
-      // --- FIX: Padding added to push button UP ---
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 90.0), // 90px padding from bottom
+        padding: const EdgeInsets.only(bottom: 90.0), 
         child: FloatingActionButton.extended(
           onPressed: _showAddBudgetDialog,
           icon: const Icon(Icons.add, color: Colors.white),
@@ -735,7 +757,7 @@ class _MoneyManagerPageState extends State<MoneyManagerPage> {
 }
 
 // ==========================================
-// 3. DOCUMENT PAGE (Fixed Button)
+// 3. DOCUMENT PAGE (Fixed Button & Color)
 // ==========================================
 class DocumentPage extends StatefulWidget {
   const DocumentPage({super.key});
@@ -789,9 +811,17 @@ class _DocumentPageState extends State<DocumentPage> {
     }
   }
 
-  void _openFile(String filePath) {
+  void _openFile(String filePath) async {
     if (!kIsWeb) {
-      OpenFile.open(filePath);
+      final result = await OpenFilex.open(filePath);
+      if (result.type != ResultType.done) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('খুলতে পারছি না: ${result.message}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -854,14 +884,13 @@ class _DocumentPageState extends State<DocumentPage> {
                 );
               },
             ),
-      // --- FIX: Padding added to push button UP ---
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 90.0), // 90px padding from bottom
+        padding: const EdgeInsets.only(bottom: 90.0), 
         child: FloatingActionButton.extended(
           onPressed: _pickAndSaveFile,
           icon: const Icon(Icons.upload_file, color: Colors.black),
           label: const Text('Upload', style: TextStyle(fontWeight: FontWeight.bold)),
-          backgroundColor: const Color(0xFFFF6D00), // Neon Orange
+          backgroundColor: const Color(0xFFFF6D00),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -870,7 +899,7 @@ class _DocumentPageState extends State<DocumentPage> {
 }
 
 // ==========================================
-// 4. ERP PAGE (Smart Version)
+// 4. ERP PAGE
 // ==========================================
 class ERPPage extends StatefulWidget {
   const ERPPage({super.key});
@@ -889,7 +918,7 @@ class _ERPPageState extends State<ERPPage> {
     super.initState();
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       _isMobile = true;
-      const String erpUrl = 'https://google.com'; 
+      const String erpUrl = 'https://erp.uttara.ac.bd/'; 
 
       _controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
